@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Quản lý ảnh (Realtime Database)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #4a6ee0 0%, #5a3d8a 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .main-content {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .upload-section, .images-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .section-title {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eaeaea;
+            font-size: 1.5rem;
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+            background: white;
+            position: relative;
+        }
+        
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f5f7ff;
+        }
+        
+        .upload-area i {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        #fileInput {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .file-info {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            transition: transform 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .upload-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .selected-files {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+        
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        
+        .remove-file {
+            color: #e74c3c;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .image-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .image-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .image-preview {
+            height: 150px;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+        
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .image-info {
+            padding: 15px;
+        }
+        
+        .image-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .image-size {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+        
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+        }
+        
+        .realtime-badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .progress-container {
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .image-stats {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .debug-info {
+            font-size: 0.8rem;
+            color: #666;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-left: 3px solid #6c757d;
+        }
+    </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Trang Quản Trị Ảnh</h1>
+            <p>Upload ảnh trực tiếp vào Realtime Database (Base64)</p>
+            <div class="realtime-badge">
+                <i class="fas fa-bolt"></i> Chỉ dùng Realtime Database - Test kết nối
+            </div>
+            <div id="firebaseStatus" class="status info" style="margin-top: 10px; display: none;"></div>
+        </header>
+        
+        <div class="main-content">
+            <div class="upload-section">
+                <h2 class="section-title">Upload Ảnh Mới</h2>
+                
+                <div class="upload-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Kéo thả ảnh vào đây hoặc click để chọn</p>
+                    <p class="file-info">Hỗ trợ: JPG, PNG (tối đa 500KB mỗi ảnh)</p>
+                    <p class="file-info">Ảnh sẽ được nén và lưu trực tiếp vào Database</p>
+                    <input type="file" id="fileInput" accept="image/jpeg,image/png,image/jpg" multiple>
+                </div>
+                
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">Đang xử lý...</div>
+                </div>
+                
+                <div id="statusMessage" class="status info">
+                    Chưa có ảnh nào được chọn
+                </div>
+                
+                <button id="uploadBtn" class="upload-btn" disabled>
+                    <i class="fas fa-upload"></i>
+                    <span>Upload Ảnh vào Database</span>
+                </button>
+                
+                <div id="selectedFiles" class="selected-files" style="display: none;">
+                    <h3>Ảnh đã chọn:</h3>
+                    <div id="filesList"></div>
+                </div>
+                
+                <div class="debug-info" id="debugInfo" style="display: none;">
+                    <strong>Debug Info:</strong>
+                    <div id="debugContent"></div>
+                </div>
+            </div>
+            
+            <div class="images-section">
+                <h2 class="section-title">Ảnh Đã Upload</h2>
+                <div class="status info">
+                    <i class="fas fa-info-circle"></i> Ảnh đang được lưu trực tiếp trong Realtime Database
+                </div>
+                <button onclick="testFirebaseConnection()" style="margin: 10px 0; padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    <i class="fas fa-plug"></i> Test Kết nối Database
+                </button>
+                <div id="imagesGrid" class="images-grid">
+                    <div class="loading">Đang tải ảnh từ Database...</div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Ứng dụng quản trị chỉ dùng Firebase Realtime Database | Ảnh hiển thị ngay trên các thiết bị khác</p>
+            <p id="databaseUrl" style="font-size: 0.8rem; color: #888; margin-top: 5px;"></p>
+        </footer>
+    </div>
+
+    <script>
+        // Firebase Configuration - CHỈ dùng Realtime Database
+        const firebaseConfig = {
+            apiKey: "AIzaSyAcy4Wr4D1nHFyVejJWLNacmT-bnWm6xWY",
+            authDomain: "webcty-ecf1b.firebaseapp.com",
+            databaseURL: "https://webcty-ecf1b-default-rtdb.firebaseio.com",
+            projectId: "webcty-ecf1b",
+            messagingSenderId: "736670340278",
+            appId: "1:736670340278:web:788716a477fef3ba1a0217",
+            measurementId: "G-C43Z1BTTXL"
+        };
+
+        // Global variables
+        let database;
+        let isFirebaseInitialized = false;
+        
+        // DOM Elements
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const selectedFilesDiv = document.getElementById('selectedFiles');
+        const filesList = document.getElementById('filesList');
+        const imagesGrid = document.getElementById('imagesGrid');
+        const statusMessage = document.getElementById('statusMessage');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const debugInfo = document.getElementById('debugInfo');
+        const debugContent = document.getElementById('debugContent');
+        const firebaseStatus = document.getElementById('firebaseStatus');
+        const databaseUrlElement = document.getElementById('databaseUrl');
+        
+        // State
+        let selectedFiles = [];
+        let images = [];
+        let isUploading = false;
+        
+        // Initialize Firebase on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeFirebase();
+            databaseUrlElement.textContent = `Database URL: ${firebaseConfig.databaseURL}`;
+        });
+        
+        // Initialize Firebase
+        function initializeFirebase() {
+            try {
+                // Check if Firebase is already initialized
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                    console.log("✅ Firebase initialized successfully");
+                } else {
+                    console.log("⚠️ Firebase already initialized");
+                }
+                
+                // Initialize database service
+                database = firebase.database();
+                isFirebaseInitialized = true;
+                
+                // Test connection
+                testFirebaseConnection();
+                
+                // Load existing images
+                loadImages();
+                setupRealtimeListener();
+                
+            } catch (error) {
+                console.error("❌ Firebase initialization error:", error);
+                showStatus("Lỗi khởi tạo Firebase: " + error.message, "error");
+                showFirebaseStatus("Không thể kết nối Firebase", "error");
+            }
+        }
+        
+        // Test Firebase connection
+        async function testFirebaseConnection() {
+            if (!database) {
+                showFirebaseStatus("Database chưa được khởi tạo", "error");
+                return;
+            }
+            
+            showFirebaseStatus("Đang kiểm tra kết nối Database...", "info");
+            
+            try {
+                // Try to write a test value
+                const testRef = database.ref('testConnection');
+                await testRef.set({
+                    test: true,
+                    timestamp: Date.now(),
+                    message: "Test connection from admin"
+                });
+                
+                // Try to read it back
+                const snapshot = await testRef.once('value');
+                const data = snapshot.val();
+                
+                // Remove test data
+                await testRef.remove();
+                
+                if (data && data.test) {
+                    showFirebaseStatus("✅ Kết nối Database thành công!", "success");
+                    console.log("✅ Database connection test passed");
+                    
+                    // Also check if images node exists
+                    const imagesRef = database.ref('images');
+                    const imagesSnapshot = await imagesRef.once('value');
+                    const imagesCount = imagesSnapshot.numChildren();
+                    showStatus(`Database có ${imagesCount} ảnh`, "info");
+                    
+                } else {
+                    showFirebaseStatus("⚠️ Kết nối Database có vấn đề", "warning");
+                }
+                
+            } catch (error) {
+                console.error("❌ Database connection test failed:", error);
+                showFirebaseStatus("❌ Lỗi kết nối Database: " + error.message, "error");
+                
+                // Check for specific errors
+                if (error.code === 'PERMISSION_DENIED') {
+                    showStatus("Lỗi: Không có quyền truy cập Database. Vui lòng kiểm tra Firebase Rules.", "error");
+                }
+            }
+        }
+        
+        // Show Firebase status
+        function showFirebaseStatus(message, type) {
+            firebaseStatus.textContent = message;
+            firebaseStatus.className = `status ${type}`;
+            firebaseStatus.style.display = 'block';
+        }
+        
+        // Event Listeners
+        fileInput.addEventListener('change', handleFileSelect);
+        uploadBtn.addEventListener('click', handleUpload);
+        
+        // Handle file selection
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            selectedFiles = files.filter(file => {
+                // Validate file type
+                const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+                if (!validTypes.includes(file.type)) {
+                    showStatus(`File "${file.name}" không đúng định dạng (chỉ JPG, PNG)`, 'error');
+                    return false;
+                }
+                
+                // Validate file size (500KB max vì lưu trực tiếp vào database)
+                if (file.size > 500 * 1024) {
+                    showStatus(`File "${file.name}" quá lớn (tối đa 500KB)`, 'error');
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            updateFileList();
+        }
+        
+        // Update file list UI
+        function updateFileList() {
+            filesList.innerHTML = '';
+            
+            if (selectedFiles.length === 0) {
+                selectedFilesDiv.style.display = 'none';
+                uploadBtn.disabled = true;
+                showStatus('Chưa có ảnh nào được chọn', 'info');
+                return;
+            }
+            
+            selectedFilesDiv.style.display = 'block';
+            uploadBtn.disabled = isUploading || !isFirebaseInitialized;
+            
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                
+                fileItem.innerHTML = `
+                    <div>
+                        <strong>${file.name}</strong>
+                        <div class="file-size">${formatFileSize(file.size)}</div>
+                    </div>
+                    <button class="remove-file" data-index="${index}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                filesList.appendChild(fileItem);
+            });
+            
+            showStatus(`Đã chọn ${selectedFiles.length} ảnh`, 'success');
+            
+            // Add event listeners to remove buttons
+            document.querySelectorAll('.remove-file').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.currentTarget.getAttribute('data-index'));
+                    selectedFiles.splice(index, 1);
+                    fileInput.value = '';
+                    updateFileList();
+                });
+            });
+        }
+        
+        // Handle upload - Convert to Base64 and save to Database
+        async function handleUpload() {
+            if (selectedFiles.length === 0 || isUploading || !isFirebaseInitialized) {
+                if (!isFirebaseInitialized) {
+                    showStatus("Firebase chưa được khởi tạo. Vui lòng kiểm tra kết nối.", "error");
+                }
+                return;
+            }
+            
+            // Test connection before upload
+            await testFirebaseConnection();
+            
+            isUploading = true;
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+            progressContainer.style.display = 'block';
+            debugInfo.style.display = 'block';
+            
+            let processedCount = 0;
+            const totalFiles = selectedFiles.length;
+            let successfulUploads = 0;
+            let failedUploads = 0;
+            
+            debugContent.innerHTML = `<div>Bắt đầu upload ${totalFiles} ảnh...</div>`;
+            
+            try {
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const file = selectedFiles[i];
+                    
+                    // Update progress
+                    processedCount++;
+                    const progress = Math.round((processedCount / totalFiles) * 100);
+                    progressFill.style.width = `${progress}%`;
+                    progressText.textContent = `Đang xử lý ${processedCount}/${totalFiles}: ${file.name}`;
+                    
+                    // Convert to Base64 and compress
+                    try {
+                        await processAndSaveImage(file);
+                        successfulUploads++;
+                        debugContent.innerHTML += `<div style="color: green;">✅ ${file.name}: Thành công</div>`;
+                    } catch (error) {
+                        failedUploads++;
+                        debugContent.innerHTML += `<div style="color: red;">❌ ${file.name}: Thất bại - ${error.message}</div>`;
+                        console.error(`Upload failed for ${file.name}:`, error);
+                    }
+                }
+                
+                if (successfulUploads > 0) {
+                    showStatus(`Upload thành công ${successfulUploads}/${totalFiles} ảnh vào Database!`, 'success');
+                    
+                    // Scroll to debug info
+                    debugInfo.scrollIntoView({ behavior: 'smooth' });
+                    
+                    // Clear selected files
+                    selectedFiles = [];
+                    fileInput.value = '';
+                    updateFileList();
+                    
+                    // Reload images after a short delay
+                    setTimeout(() => {
+                        loadImages();
+                    }, 1000);
+                    
+                } else {
+                    showStatus(`Upload thất bại tất cả ${totalFiles} ảnh`, 'error');
+                }
+                
+                if (failedUploads > 0) {
+                    showStatus(`${failedUploads} ảnh upload thất bại. Xem chi tiết bên dưới.`, 'warning');
+                }
+                
+            } catch (error) {
+                console.error('Upload process error:', error);
+                showStatus(`Lỗi trong quá trình upload: ${error.message}`, 'error');
+                debugContent.innerHTML += `<div style="color: red;">❌ Lỗi hệ thống: ${error.message}</div>`;
+            } finally {
+                isUploading = false;
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Ảnh vào Database';
+                progressContainer.style.display = 'none';
+                progressFill.style.width = '0%';
+            }
+        }
+        
+        // Process image and save to Realtime Database
+        async function processAndSaveImage(file) {
+            return new Promise((resolve, reject) => {
+                console.log(`Processing image: ${file.name}, Size: ${file.size} bytes`);
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const img = new Image();
+                    
+                    img.onload = function() {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            // Calculate new dimensions (max 600px on the longest side for smaller Base64)
+                            let width = img.width;
+                            let height = img.height;
+                            const maxDimension = 600;
+                            
+                            if (width > height && width > maxDimension) {
+                                height = Math.round((height * maxDimension) / width);
+                                width = maxDimension;
+                            } else if (height > width && height > maxDimension) {
+                                width = Math.round((width * maxDimension) / height);
+                                height = maxDimension;
+                            }
+                            
+                            canvas.width = width;
+                            canvas.height = height;
+                            
+                            // Draw image with new dimensions
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            // Quality based on original size (lower for smaller Base64)
+                            let quality = 0.6; // 60% quality cho Base64 nhỏ hơn
+                            
+                            // Convert to Base64 with compression
+                            const base64Image = canvas.toDataURL('image/jpeg', quality);
+                            
+                            // Calculate Base64 size (approx)
+                            const base64Size = Math.round((base64Image.length - 22) * 3 / 4);
+                            
+                            console.log(`Image compressed: ${file.size} -> ${base64Size} bytes, Dimensions: ${width}x${height}`);
+                            
+                            // Generate unique ID
+                            const timestamp = Date.now();
+                            const randomString = Math.random().toString(36).substring(2, 10);
+                            const imageId = `img_${timestamp}_${randomString}`;
+                            
+                            // Prepare image data for database
+                            const imageData = {
+                                id: imageId,
+                                name: file.name,
+                                base64: base64Image, // Lưu Base64 trực tiếp vào Database
+                                size: base64Size,
+                                originalSize: file.size,
+                                width: width,
+                                height: height,
+                                timestamp: timestamp,
+                                uploadedAt: new Date().toISOString(),
+                                dimensions: `${width}x${height}`,
+                                quality: quality
+                            };
+                            
+                            // Save to Realtime Database
+                            database.ref('images/' + imageId).set(imageData)
+                                .then(() => {
+                                    console.log(`✅ Image saved to database: ${imageId}, Size: ${base64Size} bytes`);
+                                    resolve(imageId);
+                                })
+                                .catch(error => {
+                                    console.error('❌ Database save error:', error);
+                                    reject(new Error(`Lỗi lưu database: ${error.message}`));
+                                });
+                                
+                        } catch (error) {
+                            console.error('❌ Image processing error:', error);
+                            reject(new Error(`Lỗi xử lý ảnh: ${error.message}`));
+                        }
+                    };
+                    
+                    img.onerror = () => {
+                        reject(new Error(`Không thể tải ảnh: ${file.name}`));
+                    };
+                    
+                    img.src = e.target.result;
+                };
+                
+                reader.onerror = () => {
+                    reject(new Error(`Không thể đọc file: ${file.name}`));
+                };
+                
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // Load images from Realtime Database
+        async function loadImages() {
+            imagesGrid.innerHTML = '<div class="loading">Đang tải ảnh từ Database...</div>';
+            
+            if (!database) {
+                imagesGrid.innerHTML = '<div class="loading">Database chưa được khởi tạo</div>';
+                return;
+            }
+            
+            try {
+                const snapshot = await database.ref('images').once('value');
+                images = [];
+                const data = snapshot.val();
+                
+                console.log("📊 Database snapshot:", data);
+                
+                if (!data) {
+                    imagesGrid.innerHTML = '<div class="loading">Chưa có ảnh nào trong Database</div>';
+                    showStatus("Database trống. Hãy upload ảnh đầu tiên!", "info");
+                    return;
+                }
+                
+                // Convert object to array
+                Object.keys(data).forEach(key => {
+                    images.push(data[key]);
+                });
+                
+                // Sort by timestamp (newest first)
+                images.sort((a, b) => b.timestamp - a.timestamp);
+                
+                console.log(`✅ Loaded ${images.length} images from database`);
+                
+                displayImages();
+                showStatus(`Đã tải ${images.length} ảnh từ Database`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Error loading images:', error);
+                imagesGrid.innerHTML = '<div class="loading">Lỗi khi tải ảnh: ' + error.message + '</div>';
+                showStatus('Lỗi khi tải ảnh từ Database: ' + error.message, 'error');
+                
+                // Show detailed error
+                debugInfo.style.display = 'block';
+                debugContent.innerHTML = `<div style="color: red;">
+                    <strong>Lỗi chi tiết:</strong><br>
+                    ${error.message}<br>
+                    Code: ${error.code || 'N/A'}<br>
+                    Stack: ${error.stack || 'N/A'}
+                </div>`;
+            }
+        }
+        
+        // Setup realtime listener for new images
+        function setupRealtimeListener() {
+            if (!database) {
+                console.error("Database not available for realtime listener");
+                return;
+            }
+            
+            try {
+                database.ref('images').on('child_added', (snapshot) => {
+                    const newImage = snapshot.val();
+                    console.log("🆕 New image added via realtime:", newImage.id);
+                    
+                    // Check if image already exists in our array
+                    if (!images.some(img => img.id === newImage.id)) {
+                        images.unshift(newImage); // Add to beginning
+                        displayImages();
+                        showStatus('Có ảnh mới được thêm vào Database!', 'success');
+                        
+                        // Play notification sound (optional)
+                        playNotificationSound();
+                    }
+                });
+                
+                database.ref('images').on('child_removed', (snapshot) => {
+                    const removedId = snapshot.key;
+                    console.log("🗑️ Image removed:", removedId);
+                    
+                    images = images.filter(img => img.id !== removedId);
+                    displayImages();
+                    showStatus('Đã xóa ảnh khỏi Database', 'info');
+                });
+                
+                console.log('✅ Realtime listener setup successfully');
+                
+            } catch (error) {
+                console.error('❌ Error setting up realtime listener:', error);
+            }
+        }
+        
+        // Play notification sound
+        function playNotificationSound() {
+            try {
+                const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3');
+                audio.volume = 0.3;
+                audio.play();
+            } catch (e) {
+                // Ignore audio errors
+            }
+        }
+        
+        // Display images in grid
+        function displayImages() {
+            if (images.length === 0) {
+                imagesGrid.innerHTML = '<div class="loading">Chưa có ảnh nào</div>';
+                return;
+            }
+            
+            imagesGrid.innerHTML = '';
+            
+            // Hiển thị tối đa 20 ảnh để tránh quá tải
+            const displayImages = images.slice(0, 20);
+            
+            displayImages.forEach(image => {
+                const imageCard = document.createElement('div');
+                imageCard.className = 'image-card';
+                
+                // Tính toán dung lượng Base64
+                const base64SizeKB = Math.round(image.size / 1024);
+                const originalSizeKB = Math.round(image.originalSize / 1024);
+                const compressionRate = originalSizeKB > 0 ? 
+                    Math.round((1 - base64SizeKB/originalSizeKB) * 100) : 0;
+                
+                // Format date
+                const uploadedDate = new Date(image.uploadedAt);
+                const formattedDate = uploadedDate.toLocaleDateString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                imageCard.innerHTML = `
+                    <div class="image-preview">
+                        <img src="${image.base64}" alt="${image.name}" 
+                             onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmNWY1Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkVycm9yIGxvYWRpbmcgaW1hZ2U8L3RleHQ+PC9zdmc+';">
+                    </div>
+                    <div class="image-info">
+                        <div class="image-name" title="${image.name}">${image.name}</div>
+                        <div class="image-size">${image.dimensions || ''} - ${formattedDate}</div>
+                        <div class="image-stats">
+                            Base64: ${base64SizeKB}KB ${compressionRate > 0 ? `(Giảm ${compressionRate}%)` : ''}
+                        </div>
+                        <button class="delete-btn" data-id="${image.id}">
+                            <i class="fas fa-trash"></i> Xóa khỏi Database
+                        </button>
+                    </div>
+                `;
+                
+                imagesGrid.appendChild(imageCard);
+            });
+            
+            if (images.length > 20) {
+                const warning = document.createElement('div');
+                warning.className = 'status warning';
+                warning.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Đang hiển thị 20/${images.length} ảnh gần nhất`;
+                imagesGrid.appendChild(warning);
+            }
+            
+            // Add event listeners to delete buttons
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const imageId = e.currentTarget.getAttribute('data-id');
+                    const confirmed = confirm('Bạn có chắc muốn xóa ảnh này khỏi Database?');
+                    
+                    if (confirmed) {
+                        try {
+                            // Remove from Realtime Database
+                            await database.ref('images/' + imageId).remove();
+                            showStatus('Đã xóa ảnh khỏi Database', 'success');
+                        } catch (error) {
+                            console.error('Error deleting image:', error);
+                            showStatus('Lỗi khi xóa ảnh: ' + error.message, 'error');
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Show status message
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status ${type}`;
+            statusMessage.style.display = 'block';
+            
+            // Auto hide after 5 seconds for success/info, 10 seconds for error
+            const hideTime = type === 'error' ? 10000 : 5000;
+            setTimeout(() => {
+                if (statusMessage.textContent === message) {
+                    statusMessage.style.display = 'none';
+                }
+            }, hideTime);
+        }
+        
+        // Format file size
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '0 Bytes';
+            
+            if (typeof bytes === 'string') {
+                bytes = parseInt(bytes);
+            }
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        // Handle drag and drop
+        const uploadArea = document.querySelector('.upload-area');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#764ba2';
+            uploadArea.style.backgroundColor = '#f0f5ff';
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#667eea';
+            uploadArea.style.backgroundColor = 'white';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#667eea';
+            uploadArea.style.backgroundColor = 'white';
+            
+            const files = Array.from(e.dataTransfer.files);
+            const imageFiles = files.filter(file => 
+                file.type.startsWith('image/') && 
+                ['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)
+            );
+            
+            if (imageFiles.length > 0) {
+                selectedFiles = selectedFiles.concat(imageFiles);
+                updateFileList();
+            } else {
+                showStatus('Vui lòng chỉ chọn file JPG/PNG (tối đa 500KB)', 'error');
+            }
+        });
+        
+        // Check and fix Firebase Rules
+        function checkFirebaseRules() {
+            console.log("⚠️ Nếu không thấy ảnh trên website, kiểm tra Firebase Rules:");
+            console.log("1. Vào Firebase Console -> Realtime Database -> Rules");
+            console.log("2. Đổi rules thành:");
+            console.log(`
+{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}
+            `);
+            console.log("3. Chỉ dùng cho testing. Trong production cần bảo mật hơn.");
+        }
+        
+        // Call this on load to show rules hint
+        checkFirebaseRules();
+    </script>
+</body>
+</html>
