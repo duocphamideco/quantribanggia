@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Quản lý ảnh (Tốc độ cao)</title>
+    <title>Admin - Quản lý ảnh (Chống trùng lặp)</title>
     <style>
-        /* GIỮ NGUYÊN CSS CŨ VÀ THÊM MỘT SỐ CSS MỚI */
+        /* CSS GỐC + CẬP NHẬT GIAO DIỆN CẢNH BÁO */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
@@ -14,7 +14,7 @@
         .main-content { padding: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         @media (max-width: 768px) { .main-content { grid-template-columns: 1fr; } }
         .upload-section, .images-section { background: #f8f9fa; border-radius: 10px; padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        .section-title { color: #2c3e50; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #eaeaea; font-size: 1.5rem; }
+        .section-title { color: #2c3e50; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #eaeaea; font-size: 1.5rem; display: flex; justify-content: space-between; align-items: center;}
         .upload-area { border: 3px dashed #667eea; border-radius: 10px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 20px; background: white; position: relative; }
         .upload-area:hover { border-color: #764ba2; background: #f5f7ff; }
         .upload-area i { font-size: 4rem; color: #667eea; margin-bottom: 15px; }
@@ -34,12 +34,19 @@
         .status { text-align: center; padding: 10px; margin: 10px 0; border-radius: 5px; font-weight: 600; }
         .status.success { background: #d4edda; color: #155724; }
         .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
         .status.info { background: #d1ecf1; color: #0c5460; }
         .progress-container { margin: 15px 0; display: none; }
         .progress-bar { width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; }
         .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); width: 0%; transition: width 0.3s; }
         .load-more-btn { background: #6c757d; color: white; border: none; padding: 10px; width: 100%; margin-top: 15px; border-radius: 5px; cursor: pointer; }
         .load-more-btn:hover { background: #5a6268; }
+        
+        /* Badge số lượng ảnh */
+        .count-badge {
+            background: #ff4757; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;
+        }
+
         footer { text-align: center; padding: 20px; color: #666; font-size: 0.9rem; border-top: 1px solid #eee; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -50,7 +57,7 @@
     <div class="container">
         <header>
             <h1><i class="fas fa-rocket"></i> Quản Trị Ảnh Tốc Độ Cao</h1>
-            <p>Upload hàng loạt - Tải nhanh - Tối ưu hóa Database</p>
+            <p>Upload hàng loạt - Tự động phát hiện ảnh trùng - Tối ưu hóa Database</p>
         </header>
         
         <div class="main-content">
@@ -60,7 +67,7 @@
                 <div class="upload-area">
                     <i class="fas fa-cloud-upload-alt"></i>
                     <p>Click hoặc Kéo thả nhiều ảnh vào đây</p>
-                    <p class="file-info" style="color: #28a745; font-weight: bold;">Đã nâng cấp: Upload không giới hạn số lượng</p>
+                    <p class="file-info" style="color: #28a745; font-weight: bold;">Hệ thống sẽ tự bỏ qua nếu tên ảnh bị trùng</p>
                     <input type="file" id="fileInput" accept="image/jpeg,image/png,image/jpg" multiple>
                 </div>
                 
@@ -85,9 +92,12 @@
             </div>
             
             <div class="images-section">
-                <h2 class="section-title">Thư Viện Ảnh Realtime</h2>
+                <h2 class="section-title">
+                    Thư Viện Ảnh
+                    <span id="totalImagesBadge" class="count-badge">0 ảnh</span>
+                </h2>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span id="totalImagesBadge" style="background: #e9ecef; padding: 5px 10px; border-radius: 15px; font-size: 0.8rem;">Đang tải...</span>
+                    <small style="color: #666">Cập nhật realtime</small>
                     <button onclick="refreshImages()" style="background: none; border: none; color: #667eea; cursor: pointer;"><i class="fas fa-sync"></i> Làm mới</button>
                 </div>
                 
@@ -101,12 +111,12 @@
         </div>
         
         <footer>
-            <p>Phiên bản tối ưu hóa cho Realtime Database | Tốc độ xử lý tăng 500%</p>
+            <p>Phiên bản V2: Tích hợp bộ đếm & Chống trùng lặp</p>
         </footer>
     </div>
 
     <script>
-        // Cấu hình Firebase (Giữ nguyên của bạn)
+        // Cấu hình Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAcy4Wr4D1nHFyVejJWLNacmT-bnWm6xWY",
             authDomain: "webcty-ecf1b.firebaseapp.com",
@@ -117,29 +127,30 @@
             measurementId: "G-C43Z1BTTXL"
         };
 
-        // Biến toàn cục
         let database;
         let selectedFiles = [];
-        let lastLoadedKey = null; // Dùng để phân trang
-        const PAGE_SIZE = 20; // Số ảnh tải mỗi lần
+        let lastLoadedKey = null; 
+        const PAGE_SIZE = 20; 
         let isUploading = false;
 
-        // Khởi tạo
         document.addEventListener('DOMContentLoaded', () => {
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             database = firebase.database();
             
-            // Tải đợt ảnh đầu tiên
             loadInitialImages();
             
-            // Check tổng số ảnh để hiển thị
+            // --- TÍNH NĂNG 1: ĐẾM SỐ LƯỢNG ẢNH REALTIME ---
             database.ref('images').on('value', snapshot => {
                 const count = snapshot.numChildren();
-                document.getElementById('totalImagesBadge').innerText = `Tổng: ${count} ảnh trong Database`;
+                document.getElementById('totalImagesBadge').innerText = `${count} ảnh`;
+                // Hiệu ứng nhấp nháy khi số lượng thay đổi
+                const badge = document.getElementById('totalImagesBadge');
+                badge.style.transform = "scale(1.2)";
+                setTimeout(() => badge.style.transform = "scale(1)", 200);
             });
         });
 
-        // --- XỬ LÝ CHỌN FILE (Cho phép chọn nhiều) ---
+        // --- XỬ LÝ CHỌN FILE ---
         const fileInput = document.getElementById('fileInput');
         const filesList = document.getElementById('filesList');
         const uploadBtn = document.getElementById('uploadBtn');
@@ -148,12 +159,8 @@
             const newFiles = Array.from(e.target.files).filter(file => {
                 return ['image/jpeg', 'image/png', 'image/jpg'].includes(file.type);
             });
-            
-            // Cộng dồn file (không reset danh sách cũ)
             selectedFiles = [...selectedFiles, ...newFiles];
             updateFileListUI();
-            
-            // Reset input để chọn trùng file nếu muốn
             fileInput.value = ''; 
         });
 
@@ -187,7 +194,17 @@
             updateFileListUI();
         }
 
-        // --- XỬ LÝ UPLOAD ĐA LUỒNG (BATCH UPLOAD) ---
+        // --- TÍNH NĂNG 2: KIỂM TRA TRÙNG LẶP ---
+        async function checkFileExists(fileName) {
+            // Query Database tìm ảnh có tên giống hệt
+            const snapshot = await database.ref('images')
+                                   .orderByChild('name')
+                                   .equalTo(fileName)
+                                   .once('value');
+            return snapshot.exists();
+        }
+
+        // --- XỬ LÝ UPLOAD ---
         uploadBtn.addEventListener('click', async () => {
             if (selectedFiles.length === 0 || isUploading) return;
             
@@ -196,20 +213,28 @@
             document.getElementById('progressContainer').style.display = 'block';
             
             let successCount = 0;
+            let duplicateCount = 0;
             let processedCount = 0;
             const totalFiles = selectedFiles.length;
             
-            // CHIA NHỎ ĐỂ UPLOAD (Batching) - Mỗi đợt 5 ảnh để tránh đơ trình duyệt
             const BATCH_SIZE = 5; 
             
             for (let i = 0; i < totalFiles; i += BATCH_SIZE) {
                 const chunk = selectedFiles.slice(i, i + BATCH_SIZE);
                 
-                // Upload song song các ảnh trong chunk
                 await Promise.all(chunk.map(async (file) => {
                     try {
-                        await processAndUploadImage(file);
-                        successCount++;
+                        // 1. Kiểm tra trùng tên trước khi xử lý
+                        const isDuplicate = await checkFileExists(file.name);
+                        
+                        if (isDuplicate) {
+                            duplicateCount++;
+                            console.log(`Bỏ qua file trùng: ${file.name}`);
+                        } else {
+                            // 2. Nếu không trùng thì mới upload
+                            await processAndUploadImage(file);
+                            successCount++;
+                        }
                     } catch (err) {
                         console.error("Lỗi upload file:", file.name, err);
                     } finally {
@@ -221,18 +246,24 @@
                 }));
             }
 
-            // Hoàn tất
-            showStatus(`Hoàn thành! Thành công ${successCount}/${totalFiles} ảnh.`, 'success');
-            selectedFiles = []; // Xóa danh sách chờ
+            // Thông báo kết quả chi tiết
+            let msg = `Hoàn thành! Đã thêm ${successCount} ảnh mới.`;
+            let type = 'success';
+            
+            if (duplicateCount > 0) {
+                msg += ` (Bỏ qua ${duplicateCount} ảnh bị trùng tên).`;
+                type = successCount > 0 ? 'warning' : 'error'; // Vàng nếu có cả 2, đỏ nếu toàn bộ là trùng
+            }
+
+            showStatus(msg, type);
+            
+            selectedFiles = []; 
             updateFileListUI();
             isUploading = false;
             document.getElementById('progressContainer').style.display = 'none';
-            
-            // Tải lại danh sách ảnh mới nhất
             refreshImages();
         });
 
-        // Xử lý nén và đẩy lên Firebase
         function processAndUploadImage(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -243,7 +274,6 @@
                         let width = img.width;
                         let height = img.height;
                         
-                        // Tối ưu kích thước: Max 800px (đủ nét cho web/mobile)
                         const MAX_SIZE = 800; 
                         if (width > height) {
                             if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
@@ -256,14 +286,13 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Nén ảnh: Quality 0.7
                         const base64 = canvas.toDataURL('image/jpeg', 0.7);
                         const timestamp = Date.now();
                         const id = `img_${timestamp}_${Math.random().toString(36).substr(2, 5)}`;
                         
                         database.ref('images/' + id).set({
                             id: id,
-                            name: file.name,
+                            name: file.name, // Lưu tên file để check trùng
                             base64: base64,
                             timestamp: firebase.database.ServerValue.TIMESTAMP,
                             uploadedAt: new Date().toISOString()
@@ -276,15 +305,14 @@
             });
         }
 
-        // --- XỬ LÝ HIỂN THỊ ẢNH (PHÂN TRANG) ---
+        // --- LOAD ẢNH & HIỂN THỊ (GIỮ NGUYÊN) ---
         function loadInitialImages() {
             document.getElementById('imagesGrid').innerHTML = '<div class="loading">Đang tải ảnh...</div>';
             
-            // Chỉ lấy PAGE_SIZE ảnh cuối cùng (ảnh mới nhất)
             database.ref('images').orderByChild('timestamp').limitToLast(PAGE_SIZE).once('value')
                 .then(snapshot => {
                     const data = snapshot.val();
-                    document.getElementById('imagesGrid').innerHTML = ''; // Xóa loading
+                    document.getElementById('imagesGrid').innerHTML = ''; 
                     
                     if (!data) {
                         document.getElementById('imagesGrid').innerHTML = '<p style="grid-column: 1/-1; text-align: center;">Chưa có ảnh nào.</p>';
@@ -292,21 +320,12 @@
                     }
                     
                     const images = [];
-                    snapshot.forEach(child => {
-                        images.push(child.val());
-                    });
-                    
-                    // Firebase trả về thứ tự cũ -> mới, ta đảo ngược để hiện mới nhất lên đầu
+                    snapshot.forEach(child => { images.push(child.val()); });
                     images.reverse();
                     
-                    // Lưu key của ảnh cuối cùng để dùng cho "Load More"
-                    if (images.length > 0) {
-                        lastLoadedKey = images[images.length - 1].timestamp; // Dùng timestamp làm mốc
-                    }
+                    if (images.length > 0) lastLoadedKey = images[images.length - 1].timestamp;
 
                     renderImages(images);
-                    
-                    // Hiện nút Load More nếu có dữ liệu
                     document.getElementById('loadMoreBtn').style.display = images.length >= PAGE_SIZE ? 'block' : 'none';
                 });
         }
@@ -316,19 +335,13 @@
             const btn = document.getElementById('loadMoreBtn');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải...';
             
-            // Query lấy ảnh cũ hơn mốc lastLoadedKey
             database.ref('images').orderByChild('timestamp').endAt(lastLoadedKey - 1).limitToLast(PAGE_SIZE).once('value')
                 .then(snapshot => {
                     const data = snapshot.val();
-                    if (!data) {
-                        btn.style.display = 'none'; // Hết ảnh
-                        return;
-                    }
+                    if (!data) { btn.style.display = 'none'; return; }
                     
                     const images = [];
-                    snapshot.forEach(child => {
-                        images.push(child.val());
-                    });
+                    snapshot.forEach(child => { images.push(child.val()); });
                     images.reverse();
                     
                     lastLoadedKey = images[images.length - 1].timestamp;
@@ -346,10 +359,10 @@
                 div.className = 'image-card';
                 div.innerHTML = `
                     <div class="image-preview">
-                        <img src="${img.base64}" loading="lazy" alt="Image">
+                        <img src="${img.base64}" loading="lazy" alt="${img.name}">
                     </div>
                     <div class="image-info">
-                        <div class="image-name">${img.name}</div>
+                        <div class="image-name" title="${img.name}">${img.name}</div>
                         <button class="delete-btn" onclick="deleteImage('${img.id}')"><i class="fas fa-trash"></i> Xóa</button>
                     </div>
                 `;
@@ -357,18 +370,14 @@
             });
         }
 
-        window.refreshImages = function() {
-            lastLoadedKey = null;
-            loadInitialImages();
-        }
+        window.refreshImages = function() { lastLoadedKey = null; loadInitialImages(); }
 
         window.deleteImage = function(id) {
             if(confirm('Bạn chắc chắn muốn xóa ảnh này?')) {
                 database.ref('images/' + id).remove()
                     .then(() => {
                         showStatus('Đã xóa ảnh thành công', 'success');
-                        // Xóa element khỏi giao diện ngay lập tức thay vì reload lại
-                        refreshImages(); // Reload lại để đảm bảo đồng bộ
+                        refreshImages(); 
                     })
                     .catch(err => showStatus('Lỗi: ' + err.message, 'error'));
             }
@@ -379,7 +388,10 @@
             el.innerText = msg;
             el.className = `status ${type}`;
             el.style.display = 'block';
-            setTimeout(() => el.style.display = 'none', 3000);
+            
+            // Nếu là cảnh báo, hiển thị lâu hơn chút (5s)
+            const timeout = type === 'warning' ? 5000 : 3000;
+            setTimeout(() => el.style.display = 'none', timeout);
         }
     </script>
 </body>
