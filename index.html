@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Quản lý ảnh (Chống trùng lặp)</title>
+    <title>Admin - Quản lý ảnh & Thông Báo</title>
     <style>
-        /* CSS GỐC + CẬP NHẬT GIAO DIỆN CẢNH BÁO */
+        /* --- CSS GỐC (GIỮ NGUYÊN) --- */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
@@ -30,7 +30,18 @@
         .image-preview img { width: 100%; height: 100%; object-fit: cover; }
         .image-info { padding: 10px; }
         .image-name { font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .delete-btn { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 0.8rem; margin-top: 5px; }
+        
+        /* --- CSS MỚI CHO 2 NÚT BẤM --- */
+        .card-actions { display: flex; gap: 5px; margin-top: 5px; }
+        .btn-action { border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; flex: 1; font-size: 0.8rem; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        
+        .delete-btn { background: #e74c3c; } /* Nút Xóa cũ */
+        .delete-btn:hover { background: #c0392b; }
+        
+        .notify-btn { background: #3498db; } /* Nút Thông báo mới */
+        .notify-btn:hover { background: #2980b9; }
+
+        /* Các phần CSS khác giữ nguyên */
         .status { text-align: center; padding: 10px; margin: 10px 0; border-radius: 5px; font-weight: 600; }
         .status.success { background: #d4edda; color: #155724; }
         .status.error { background: #f8d7da; color: #721c24; }
@@ -41,13 +52,10 @@
         .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); width: 0%; transition: width 0.3s; }
         .load-more-btn { background: #6c757d; color: white; border: none; padding: 10px; width: 100%; margin-top: 15px; border-radius: 5px; cursor: pointer; }
         .load-more-btn:hover { background: #5a6268; }
-        
-        /* Badge số lượng ảnh */
-        .count-badge {
-            background: #ff4757; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;
-        }
-
+        .count-badge { background: #ff4757; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; }
         footer { text-align: center; padding: 20px; color: #666; font-size: 0.9rem; border-top: 1px solid #eee; }
+        .spinning { animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -111,7 +119,7 @@
         </div>
         
         <footer>
-            <p>Phiên bản V2: Tích hợp bộ đếm & Chống trùng lặp</p>
+            <p>Phiên bản V2.3: Chuẩn hóa tính năng Load ảnh & Thông báo</p>
         </footer>
     </div>
 
@@ -130,7 +138,7 @@
         let database;
         let selectedFiles = [];
         let lastLoadedKey = null; 
-        const PAGE_SIZE = 20; 
+        const PAGE_SIZE = 20; // Giữ nguyên 20 như bản gốc
         let isUploading = false;
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -139,11 +147,10 @@
             
             loadInitialImages();
             
-            // --- TÍNH NĂNG 1: ĐẾM SỐ LƯỢNG ẢNH REALTIME ---
+            // Đếm số lượng ảnh
             database.ref('images').on('value', snapshot => {
                 const count = snapshot.numChildren();
                 document.getElementById('totalImagesBadge').innerText = `${count} ảnh`;
-                // Hiệu ứng nhấp nháy khi số lượng thay đổi
                 const badge = document.getElementById('totalImagesBadge');
                 badge.style.transform = "scale(1.2)";
                 setTimeout(() => badge.style.transform = "scale(1)", 200);
@@ -194,9 +201,8 @@
             updateFileListUI();
         }
 
-        // --- TÍNH NĂNG 2: KIỂM TRA TRÙNG LẶP ---
+        // --- KIỂM TRA TRÙNG ---
         async function checkFileExists(fileName) {
-            // Query Database tìm ảnh có tên giống hệt
             const snapshot = await database.ref('images')
                                    .orderByChild('name')
                                    .equalTo(fileName)
@@ -216,22 +222,17 @@
             let duplicateCount = 0;
             let processedCount = 0;
             const totalFiles = selectedFiles.length;
-            
             const BATCH_SIZE = 5; 
             
             for (let i = 0; i < totalFiles; i += BATCH_SIZE) {
                 const chunk = selectedFiles.slice(i, i + BATCH_SIZE);
-                
                 await Promise.all(chunk.map(async (file) => {
                     try {
-                        // 1. Kiểm tra trùng tên trước khi xử lý
                         const isDuplicate = await checkFileExists(file.name);
-                        
                         if (isDuplicate) {
                             duplicateCount++;
                             console.log(`Bỏ qua file trùng: ${file.name}`);
                         } else {
-                            // 2. Nếu không trùng thì mới upload
                             await processAndUploadImage(file);
                             successCount++;
                         }
@@ -246,17 +247,14 @@
                 }));
             }
 
-            // Thông báo kết quả chi tiết
             let msg = `Hoàn thành! Đã thêm ${successCount} ảnh mới.`;
             let type = 'success';
-            
             if (duplicateCount > 0) {
                 msg += ` (Bỏ qua ${duplicateCount} ảnh bị trùng tên).`;
-                type = successCount > 0 ? 'warning' : 'error'; // Vàng nếu có cả 2, đỏ nếu toàn bộ là trùng
+                type = successCount > 0 ? 'warning' : 'error';
             }
 
             showStatus(msg, type);
-            
             selectedFiles = []; 
             updateFileListUI();
             isUploading = false;
@@ -273,14 +271,12 @@
                         const canvas = document.createElement('canvas');
                         let width = img.width;
                         let height = img.height;
-                        
                         const MAX_SIZE = 800; 
                         if (width > height) {
                             if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
                         } else {
                             if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
                         }
-                        
                         canvas.width = width;
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
@@ -292,7 +288,7 @@
                         
                         database.ref('images/' + id).set({
                             id: id,
-                            name: file.name, // Lưu tên file để check trùng
+                            name: file.name,
                             base64: base64,
                             timestamp: firebase.database.ServerValue.TIMESTAMP,
                             uploadedAt: new Date().toISOString()
@@ -305,7 +301,7 @@
             });
         }
 
-        // --- LOAD ẢNH & HIỂN THỊ (GIỮ NGUYÊN) ---
+        // --- LOAD ẢNH (LOGIC GỐC) ---
         function loadInitialImages() {
             document.getElementById('imagesGrid').innerHTML = '<div class="loading">Đang tải ảnh...</div>';
             
@@ -352,23 +348,71 @@
                 });
         }
 
+        // --- RENDER ẢNH & NÚT BẤM MỚI ---
         function renderImages(images) {
             const grid = document.getElementById('imagesGrid');
             images.forEach(img => {
                 const div = document.createElement('div');
                 div.className = 'image-card';
+                // THAY ĐỔI DUY NHẤT Ở ĐÂY: Thêm div card-actions và nút TB
                 div.innerHTML = `
                     <div class="image-preview">
                         <img src="${img.base64}" loading="lazy" alt="${img.name}">
                     </div>
                     <div class="image-info">
                         <div class="image-name" title="${img.name}">${img.name}</div>
-                        <button class="delete-btn" onclick="deleteImage('${img.id}')"><i class="fas fa-trash"></i> Xóa</button>
+                        <div class="card-actions">
+                            <button id="btn-tb-${img.id}" class="btn-action notify-btn" onclick="repushNotification('${img.id}', '${img.name}', '${img.base64 ? img.base64.replace(/'/g, "\\'") : ''}')">
+                                <i class="fas fa-bell"></i> TB
+                            </button>
+                            <button class="btn-action delete-btn" onclick="deleteImage('${img.id}')">
+                                <i class="fas fa-trash"></i> Xóa
+                            </button>
+                        </div>
                     </div>
                 `;
                 grid.appendChild(div);
             });
         }
+
+        // --- CHỨC NĂNG MỚI: ĐẨY LẠI THÔNG BÁO ---
+        window.repushNotification = function(id, name, base64) {
+            if(!confirm(`Gửi thông báo mới cho khách hàng về ảnh "${name}"?`)) return;
+
+            const btn = document.getElementById('btn-tb-' + id);
+            const icon = btn.querySelector('i');
+            const originalIconClass = icon.className;
+            
+            // Hiệu ứng loading
+            icon.className = "fas fa-spinner spinning";
+            btn.disabled = true;
+
+            // 1. Tạo ID mới
+            const newId = `img_${Date.now()}_repush`;
+            
+            // 2. Thêm ảnh mới
+            database.ref('images/' + newId).set({
+                id: newId,
+                name: name,
+                base64: base64,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                uploadedAt: new Date().toISOString()
+            })
+            .then(() => {
+                // 3. Xóa ảnh cũ
+                return database.ref('images/' + id).remove();
+            })
+            .then(() => {
+                showStatus('Đã gửi thông báo thành công!', 'success');
+                // Refresh sẽ được gọi tự động ở một số logic, nhưng ở đây ta gọi thủ công để cập nhật lại lưới
+                refreshImages();
+            })
+            .catch(err => {
+                showStatus('Lỗi: ' + err.message, 'error');
+                icon.className = originalIconClass;
+                btn.disabled = false;
+            });
+        };
 
         window.refreshImages = function() { lastLoadedKey = null; loadInitialImages(); }
 
@@ -388,8 +432,6 @@
             el.innerText = msg;
             el.className = `status ${type}`;
             el.style.display = 'block';
-            
-            // Nếu là cảnh báo, hiển thị lâu hơn chút (5s)
             const timeout = type === 'warning' ? 5000 : 3000;
             setTimeout(() => el.style.display = 'none', timeout);
         }
