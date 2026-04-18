@@ -41,6 +41,12 @@
         .notify-btn { background: #3498db; } 
         .notify-btn:hover { background: #2980b9; }
 
+        /* --- CSS MỚI CHO NÚT XÓA TẤT CẢ --- */
+        .danger-zone { margin-top: 25px; padding-top: 20px; border-top: 2px dashed #e74c3c; }
+        .delete-all-btn { background: #e74c3c; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; }
+        .delete-all-btn:hover { background: #c0392b; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3); }
+        .delete-all-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
         .status { text-align: center; padding: 10px; margin: 10px 0; border-radius: 5px; font-weight: 600; }
         .status.success { background: #d4edda; color: #155724; }
         .status.error { background: #f8d7da; color: #721c24; }
@@ -96,6 +102,17 @@
                     <h3>Hàng chờ Upload (<span id="fileCount">0</span>):</h3>
                     <div id="filesList"></div>
                 </div>
+
+                <!-- KHU VỰC NGUY HIỂM - XÓA TẤT CẢ DỮ LIỆU -->
+                <div class="danger-zone">
+                    <button id="deleteAllBtn" class="delete-all-btn" onclick="deleteAllImages()">
+                        <i class="fas fa-trash-alt"></i>
+                        <span>Xóa tất cả dữ liệu ảnh</span>
+                    </button>
+                    <p style="font-size: 0.8rem; color: #e74c3c; margin-top: 8px; text-align: center;">
+                        <i class="fas fa-exclamation-triangle"></i> Hành động này không thể hoàn tác!
+                    </p>
+                </div>
             </div>
             
             <div class="images-section">
@@ -118,7 +135,7 @@
         </div>
         
         <footer>
-            <p>Phiên bản V2.3.1: Tối ưu bộ nhớ nút Thông báo</p>
+            <p>Phiên bản V2.3.2: Bổ sung chức năng xóa tất cả</p>
         </footer>
     </div>
 
@@ -139,6 +156,7 @@
         let lastLoadedKey = null; 
         const PAGE_SIZE = 20; 
         let isUploading = false;
+        let isDeletingAll = false; // Cờ trạng thái xóa tất cả
 
         document.addEventListener('DOMContentLoaded', () => {
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -153,10 +171,77 @@
                 const badge = document.getElementById('totalImagesBadge');
                 badge.style.transform = "scale(1.2)";
                 setTimeout(() => badge.style.transform = "scale(1)", 200);
+                
+                // Cập nhật trạng thái nút xóa tất cả dựa trên số lượng
+                const deleteAllBtn = document.getElementById('deleteAllBtn');
+                if (count === 0) {
+                    deleteAllBtn.disabled = true;
+                } else {
+                    deleteAllBtn.disabled = isDeletingAll ? true : false;
+                }
             });
         });
 
-        // --- XỬ LÝ CHỌN FILE ---
+        // --- XÓA TẤT CẢ DỮ LIỆU ẢNH (CHỨC NĂNG MỚI) ---
+        window.deleteAllImages = async function() {
+            const count = document.getElementById('totalImagesBadge').innerText.replace(' ảnh', '');
+            if (count === '0') {
+                showStatus('Không có ảnh nào để xóa.', 'warning');
+                return;
+            }
+
+            // Xác nhận kỹ lưỡng
+            const confirmMsg = `BẠN CÓ CHẮC CHẮN MUỐN XÓA TẤT CẢ ${count} ẢNH?\n\nHành động này không thể hoàn tác!`;
+            if (!confirm(confirmMsg)) return;
+            
+            // Xác nhận lần 2 để đảm bảo an toàn
+            const secondConfirm = prompt(`Để xác nhận xóa TẤT CẢ dữ liệu, hãy gõ chính xác: "XOA TAT CA"`);
+            if (secondConfirm !== "XOA TAT CA") {
+                showStatus('Hủy thao tác xóa tất cả.', 'info');
+                return;
+            }
+
+            const btn = document.getElementById('deleteAllBtn');
+            const originalText = btn.innerHTML;
+            
+            // Cập nhật trạng thái UI
+            isDeletingAll = true;
+            btn.innerHTML = '<i class="fas fa-spinner spinning"></i> Đang xóa tất cả...';
+            btn.disabled = true;
+            
+            // Vô hiệu hóa các nút upload và xóa từng ảnh trong quá trình xóa
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.disabled = true;
+            
+            showStatus(`Đang xóa ${count} ảnh... Vui lòng đợi.`, 'warning');
+
+            try {
+                // Xóa toàn bộ node 'images'
+                await database.ref('images').remove();
+                
+                showStatus(`Đã xóa thành công tất cả ${count} ảnh!`, 'success');
+                lastLoadedKey = null;
+                
+                // Làm mới giao diện
+                refreshImages();
+                
+                // Reset danh sách file đang chờ (nếu có)
+                selectedFiles = [];
+                updateFileListUI();
+                
+            } catch (error) {
+                console.error("Lỗi khi xóa tất cả:", error);
+                showStatus('Lỗi khi xóa dữ liệu: ' + error.message, 'error');
+            } finally {
+                // Khôi phục trạng thái
+                isDeletingAll = false;
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                uploadBtn.disabled = selectedFiles.length === 0;
+            }
+        };
+
+        // --- XỬ LÝ CHỌN FILE (GIỮ NGUYÊN) ---
         const fileInput = document.getElementById('fileInput');
         const filesList = document.getElementById('filesList');
         const uploadBtn = document.getElementById('uploadBtn');
@@ -176,7 +261,7 @@
             
             if (selectedFiles.length > 0) {
                 document.getElementById('selectedFiles').style.display = 'block';
-                uploadBtn.disabled = isUploading;
+                uploadBtn.disabled = isUploading || isDeletingAll;
                 uploadBtn.innerHTML = `<i class="fas fa-upload"></i> Upload ${selectedFiles.length} ảnh`;
                 
                 selectedFiles.forEach((file, index) => {
@@ -200,7 +285,7 @@
             updateFileListUI();
         }
 
-        // --- KIỂM TRA TRÙNG ---
+        // --- KIỂM TRA TRÙNG (GIỮ NGUYÊN) ---
         async function checkFileExists(fileName) {
             const snapshot = await database.ref('images')
                                    .orderByChild('name')
@@ -209,7 +294,7 @@
             return snapshot.exists();
         }
 
-        // --- XỬ LÝ UPLOAD ---
+        // --- XỬ LÝ UPLOAD (GIỮ NGUYÊN) ---
         uploadBtn.addEventListener('click', async () => {
             if (selectedFiles.length === 0 || isUploading) return;
             
@@ -300,7 +385,7 @@
             });
         }
 
-        // --- LOAD ẢNH ---
+        // --- LOAD ẢNH (GIỮ NGUYÊN) ---
         function loadInitialImages() {
             document.getElementById('imagesGrid').innerHTML = '<div class="loading">Đang tải ảnh...</div>';
             
@@ -347,7 +432,7 @@
                 });
         }
 
-        // --- RENDER ẢNH & NÚT BẤM (ĐÃ FIX LỖI BASE64 VÀO HTML) ---
+        // --- RENDER ẢNH & NÚT BẤM (GIỮ NGUYÊN) ---
         function renderImages(images) {
             const grid = document.getElementById('imagesGrid');
             images.forEach(img => {
@@ -373,7 +458,7 @@
             });
         }
 
-        // --- CHỨC NĂNG MỚI: ĐẨY LẠI THÔNG BÁO (TỐI ƯU HÓA) ---
+        // --- CHỨC NĂNG ĐẨY LẠI THÔNG BÁO (GIỮ NGUYÊN) ---
         window.repushNotification = function(id) {
             if(!confirm(`Bạn muốn gửi lại thông báo mới cho ảnh này?`)) return;
 
@@ -381,23 +466,19 @@
             const icon = btn.querySelector('i');
             const originalIconClass = icon.className;
             
-            // Hiệu ứng loading
             icon.className = "fas fa-spinner spinning";
             btn.disabled = true;
 
-            // Yêu cầu Firebase đọc lại dữ liệu cũ, thay vì phải chèn Base64 vào HTML
             database.ref('images/' + id).once('value').then(snap => {
                 const data = snap.val();
                 if(!data) throw new Error("Không lấy được dữ liệu ảnh gốc!");
 
                 const newId = `img_${Date.now()}_repush`;
                 
-                // Làm mới thông số thời gian
                 data.id = newId;
                 data.timestamp = firebase.database.ServerValue.TIMESTAMP;
                 data.uploadedAt = new Date().toISOString();
 
-                // Đẩy ảnh với ID mới lên, xong xuôi thì xóa ID cũ
                 return database.ref('images/' + newId).set(data).then(() => {
                     return database.ref('images/' + id).remove();
                 });
