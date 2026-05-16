@@ -61,14 +61,127 @@
         footer { text-align: center; padding: 20px; color: #666; font-size: 0.9rem; border-top: 1px solid #eee; }
         .spinning { animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ===== LOGIN OVERLAY ===== */
+        #loginOverlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .login-box {
+            background: white; border-radius: 16px; padding: 40px 35px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+            width: 100%; max-width: 400px;
+            animation: loginFadeIn 0.5s ease;
+        }
+        @keyframes loginFadeIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes loginShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+        .login-shake { animation: loginShake 0.4s ease; }
+        .login-icon {
+            width: 80px; height: 80px; margin: 0 auto 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 2.2rem;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        .login-box h2 {
+            text-align: center; color: #2c3e50; margin-bottom: 8px; font-size: 1.7rem;
+        }
+        .login-box .login-sub {
+            text-align: center; color: #7f8c8d; margin-bottom: 25px; font-size: 0.95rem;
+        }
+        .login-field { position: relative; margin-bottom: 18px; }
+        .login-field i.fa-lock {
+            position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+            color: #95a5a6;
+        }
+        #loginPassword {
+            width: 100%; padding: 14px 45px 14px 45px;
+            border: 2px solid #e0e0e0; border-radius: 10px;
+            font-size: 1rem; outline: none; transition: all 0.2s;
+        }
+        #loginPassword:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15); }
+        .toggle-pw {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: #95a5a6; cursor: pointer;
+            padding: 6px; font-size: 1rem;
+        }
+        .toggle-pw:hover { color: #667eea; }
+        #loginBtn {
+            width: 100%; padding: 14px; border: none; border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; font-size: 1.05rem; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            transition: all 0.2s;
+        }
+        #loginBtn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4); }
+        #loginError {
+            display: none; margin-bottom: 15px; padding: 12px;
+            background: #f8d7da; color: #721c24; border-radius: 8px;
+            font-size: 0.9rem; text-align: center;
+        }
+        .login-footer {
+            text-align: center; margin-top: 20px; color: #95a5a6; font-size: 0.8rem;
+        }
+        /* Nút đăng xuất */
+        .logout-btn {
+            position: absolute; top: 25px; right: 25px;
+            background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+        .logout-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-1px); }
+        header { position: relative; }
+        /* Ẩn nội dung chính cho đến khi đăng nhập */
+        body.locked .container { display: none; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="locked">
+    <!-- ===== MÀN HÌNH ĐĂNG NHẬP ===== -->
+    <div id="loginOverlay">
+        <div class="login-box" id="loginBox">
+            <div class="login-icon"><i class="fas fa-shield-halved"></i></div>
+            <h2>Đăng Nhập Quản Trị</h2>
+            <p class="login-sub">Vui lòng nhập mật khẩu để truy cập</p>
+
+            <div id="loginError"><i class="fas fa-exclamation-circle"></i> <span id="loginErrorMsg">Mật khẩu không đúng!</span></div>
+
+            <div class="login-field">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="loginPassword" placeholder="Nhập mật khẩu..." autocomplete="current-password" autofocus>
+                <button type="button" class="toggle-pw" id="togglePw" title="Hiện/Ẩn mật khẩu">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+
+            <button id="loginBtn" type="button">
+                <i class="fas fa-right-to-bracket"></i>
+                <span>Đăng nhập</span>
+            </button>
+
+            <p class="login-footer">
+                <i class="fas fa-lock"></i> Truy cập được bảo vệ
+            </p>
+        </div>
+    </div>
+
     <div class="container">
         <header>
+            <button class="logout-btn" onclick="doLogout()" title="Đăng xuất">
+                <i class="fas fa-right-from-bracket"></i> Đăng xuất
+            </button>
             <h1><i class="fas fa-rocket"></i> Quản Trị Ảnh Tốc Độ Cao</h1>
             <p>Upload hàng loạt - Tự động phát hiện ảnh trùng - Tối ưu hóa Database</p>
         </header>
@@ -140,6 +253,86 @@
     </div>
 
     <script>
+        // ===== HỆ THỐNG ĐĂNG NHẬP =====
+        // Mã hóa nhẹ mật khẩu (Base64) để không lộ trực tiếp khi xem source
+        // Mật khẩu gốc: minhtriet@2026
+        const AUTH_KEY = 'qtwg_auth_token_v1';
+        const PW_HASH  = 'bWluaHRyaWV0QDIwMjY='; // btoa('minhtriet@2026')
+
+        // Kiểm tra session: nếu đã đăng nhập trước đó thì mở khoá ngay
+        (function checkAuth() {
+            try {
+                if (sessionStorage.getItem(AUTH_KEY) === PW_HASH) {
+                    unlockApp();
+                }
+            } catch (e) { /* ignore */ }
+        })();
+
+        function unlockApp() {
+            document.body.classList.remove('locked');
+            const ov = document.getElementById('loginOverlay');
+            if (ov) ov.style.display = 'none';
+        }
+
+        function doLogin() {
+            const input = document.getElementById('loginPassword');
+            const box   = document.getElementById('loginBox');
+            const errEl = document.getElementById('loginError');
+            const val   = (input.value || '').trim();
+
+            if (!val) {
+                showLoginError('Vui lòng nhập mật khẩu!');
+                return;
+            }
+            if (btoa(val) === PW_HASH) {
+                try { sessionStorage.setItem(AUTH_KEY, PW_HASH); } catch (e) {}
+                errEl.style.display = 'none';
+                // Hiệu ứng nhỏ trước khi vào
+                const btn = document.getElementById('loginBtn');
+                btn.innerHTML = '<i class="fas fa-check"></i> <span>Thành công!</span>';
+                btn.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                setTimeout(unlockApp, 350);
+            } else {
+                showLoginError('Mật khẩu không đúng. Vui lòng thử lại!');
+                box.classList.remove('login-shake');
+                void box.offsetWidth; // reflow để chạy lại animation
+                box.classList.add('login-shake');
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function showLoginError(msg) {
+            const errEl = document.getElementById('loginError');
+            document.getElementById('loginErrorMsg').innerText = msg;
+            errEl.style.display = 'block';
+        }
+
+        function doLogout() {
+            if (!confirm('Bạn có chắc muốn đăng xuất?')) return;
+            try { sessionStorage.removeItem(AUTH_KEY); } catch (e) {}
+            location.reload();
+        }
+
+        // Gắn sự kiện sau khi DOM sẵn sàng
+        document.addEventListener('DOMContentLoaded', function () {
+            const btn   = document.getElementById('loginBtn');
+            const input = document.getElementById('loginPassword');
+            const tgl   = document.getElementById('togglePw');
+
+            btn.addEventListener('click', doLogin);
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); doLogin(); }
+            });
+            tgl.addEventListener('click', function () {
+                const isPw = input.type === 'password';
+                input.type = isPw ? 'text' : 'password';
+                tgl.innerHTML = isPw ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+                input.focus();
+            });
+        });
+        // ===== KẾT THÚC HỆ THỐNG ĐĂNG NHẬP =====
+
         // Cấu hình Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAcy4Wr4D1nHFyVejJWLNacmT-bnWm6xWY",
